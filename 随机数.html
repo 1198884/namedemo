@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机点名工具</title>
+    <script src="https://apps.bdimg.com/libs/vue/2.6.10/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script type="text/javascript" src="https://js.cdn.aliyun.dcloud.net.cn/dev/uni-app/uni.webview.1.5.2.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(90deg, #4776E6 0%, #8E54E9 100%);
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .description {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+        }
+        
+        .name-list-section {
+            flex: 1;
+        }
+        
+        .picker-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            color: #333;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4776E6;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            resize: none;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(90deg, #4776E6 0%, #8E54E9 100%);
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .secondary-btn {
+            background: linear-gradient(90deg, #5A67D8 0%, #9F7AEA 100%);
+        }
+        
+        .result-display {
+            width: 100%;
+            height: 200px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 0;
+            overflow: hidden;
+            position: relative;
+            border: 2px dashed #ddd;
+        }
+        
+        #selectedName {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #4776E6;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinning {
+            animation: spin 0.2s infinite linear;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .history {
+            margin-top: 20px;
+            width: 100%;
+        }
+        
+        .history-title {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        #historyList {
+            list-style-type: none;
+            max-height: 120px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #f0f2f5;
+            border-radius: 8px;
+        }
+        
+        #historyList li {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            color: #666;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+            font-size: 0.9rem;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container">
+        <header>
+            <h1>随机点名工具</h1>
+          
+        </header>
+        
+        <div class="main-content">
+            <div class="name-list-section">
+                <h2 class="section-title">名单管理</h2>
+                <textarea v-model="nameListText" placeholder="请输入名单，每行一个名字&#10;例如：&#10;张三&#10;李四&#10;王五"></textarea>
+                <div class="buttons">
+                    <button @click="importExample">导入示例</button>
+                    <button @click="clearList" class="secondary-btn">清空名单</button>
+                </div>
+            </div>
+            
+            <div class="picker-section">
+                <h2 class="section-title">随机点名</h2>
+                <div class="result-display">
+                    <div id="selectedName" :class="{ spinning: isSpinning }">{{ selectedName }}</div>
+                </div>
+                <button @click="togglePick">{{ pickButtonText }}</button>
+                
+                <div class="history">
+                    <h3 class="history-title">已点名单历史</h3>
+                    <ul id="historyList">
+                        <li v-for="(item, index) in history" :key="index">{{ item }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+           
+        </footer>
+    </div>
+
+    <script>
+        new Vue({
+            el: '#app',
+            data: {
+                nameListText: '',
+                selectedName: '等待选择',
+                isSpinning: false,
+                spinInterval: null,
+                history: [],
+                pickButtonText: '开始随机选择'
+            },
+            methods: {
+                importExample() {
+                    this.nameListText = "张三\n李四\n王五\n赵六\n钱七\n孙八\n周九\n吴十";
+                    alert('示例名单已导入！');
+                },
+                
+                clearList() {
+                    this.nameListText = '';
+                    this.selectedName = '等待选择';
+                    this.history = [];
+                },
+                
+                togglePick() {
+                    if (this.isSpinning) {
+                        this.stopSpinning();
+                    } else {
+                        this.startSpinning();
+                    }
+                },
+                
+                startSpinning() {
+                    const nameList = this.getNameList();
+                    
+                    if (nameList.length === 0) {
+                        alert('请先导入或输入名单！');
+                        return;
+                    }
+                    
+                    this.isSpinning = true;
+                    this.pickButtonText = '停止';
+                    
+                    let spinCount = 0;
+                    const maxSpinTime = 3000;
+                    const startTime = Date.now();
+                    
+                    this.spinInterval = setInterval(() => {
+                        const randomIndex = Math.floor(Math.random() * nameList.length);
+                        this.selectedName = nameList[randomIndex];
+                        
+                        spinCount++;
+                        
+                        if (Date.now() - startTime > maxSpinTime) {
+                            this.stopSpinning();
+                        }
+                    }, 50);
+                },
+                
+                stopSpinning() {
+                    clearInterval(this.spinInterval);
+                    this.isSpinning = false;
+                    this.pickButtonText = '开始随机选择';
+                    
+                    const nameList = this.getNameList();
+                    const randomIndex = Math.floor(Math.random() * nameList.length);
+                    this.selectedName = nameList[randomIndex];
+                    
+                    this.addToHistory(this.selectedName);
+                },
+                
+                getNameList() {
+                    return this.nameListText.split('\n')
+                        .map(name => name.trim())
+                        .filter(name => name.length > 0);
+                },
+                
+                addToHistory(name) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    this.history.unshift(`${timestamp} - ${name}`);
+                    
+                    if (this.history.length > 10) {
+                        this.history.pop();
+                    }
+                }
+            },
+            
+            beforeDestroy() {
+                if (this.spinInterval) {
+                    clearInterval(this.spinInterval);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
